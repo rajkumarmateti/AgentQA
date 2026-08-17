@@ -1,7 +1,7 @@
 # API Functional Test Specification — Cursor Agent Instructions
 
 ## Purpose
-Create comprehensive manual API functional test cases for the InvenTree Parts API from the supplied problem statement and official API schema documentation.
+Create comprehensive manual API functional test cases for the InvenTree Parts API and official API schema documentation.
 
 ## Source of truth
 - API schema: https://docs.inventree.org/en/stable/api/schema/part/
