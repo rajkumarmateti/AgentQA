@@ -1,0 +1,23 @@
+# Feature: Test Templates
+
+**Docs:** [Tests](https://docs.inventree.org/en/stable/part/test/) · [Testable](https://docs.inventree.org/en/stable/part/#testable) · [Part Views — Test Templates / Results](https://docs.inventree.org/en/stable/part/views/#test-templates)
+
+Test templates apply to **testable** parts. Results are recorded against stock items. Deleting a template deletes associated results — prefer disable.
+
+| ID | Area | Scenario | Preconditions | Test Data | Steps | Expected Result | Type | Priority |
+|---|---|---|---|---|---|---|---|---|
+| UI-PART-226 | Test Templates | Test Templates tab only when Testable | Testable vs non-testable part. | PART-TST, PART-STD. | 1. Open each part. | Test Templates and Test Results tabs are visible only for the testable part. | State-transition | P1 |
+| UI-PART-227 | Test Templates | Create a test template | PART-TST unlocked. | Name=`Firmware Version`. Description=`Read FW`. | 1. Open Test Templates. 2. Create template. 3. Submit. | Template is listed. Generated key is `firmwareversion`. | Positive | P1 |
+| UI-PART-228 | Test Templates | Test name unique for the part (and variant set) | Existing test `Firmware Version` on the part. | Second test named `Firmware Version`. | 1. Create another template with the same name. | Rejected. Name must be unique for the part (or across variants). | Negative | P1 |
+| UI-PART-229 | Test Templates | Test key generation examples | Testable part. | Names: `Firmware Version`; ` My NEW T E sT `; `100 Percent Test`; `Test 123`. | 1. Create each template. 2. Read generated key. | Keys: `firmwareversion`; `mynewtest`; `_100percenttest`; `test123`. | Boundary | P2 |
+| UI-PART-230 | Test Templates | Required flag is stored | New template. | Required=true. | 1. Create template with Required set. 2. Re-open. | Required remains set. Docs: indicates the test is crucial for acceptance. | Persistence | P2 |
+| UI-PART-231 | Test Templates | Requires Value flag | New template. | Requires Value=true. | 1. Create with Requires Value. | Flag persists. A corresponding stock test result must include a value (enforced when recording results). | Positive | P2 |
+| UI-PART-232 | Test Templates | Requires Attachment flag | New template. | Requires Attachment=true. | 1. Create with Requires Attachment. | Flag persists. Recording a result without a file is rejected (on the stock-item test UI). | Positive | P2 |
+| UI-PART-233 | Test Templates | Disable test instead of delete | Template with existing stock test results. | Enabled=false. | 1. Set Enabled False. 2. Reload. | Template is retained. Results are retained. Test is disabled. | State-transition | P1 |
+| UI-PART-234 | Test Templates | Delete template also deletes associated results | Template with results on a stock item. | Delete action. | 1. Delete the test template. 2. Open stock item tests / Test Results. | Template is gone. Associated test results are deleted. | Negative | P1 |
+| UI-PART-235 | Test Templates | Cascade to variant parts | Testable template part with a test. Variant exists. | Test on master. | 1. Create test on template part. 2. Open variant Test Templates. | Variant shows the cascaded test. Variant stock items use it. | Cross-functional | P1 |
+| UI-PART-236 | Test Templates | Duplicate test name across variants is rejected | Variant already inherited `Firmware Version`. | Add `Firmware Version` directly on the variant. | 1. On the variant, create a test with the same name. | Rejected. Uniqueness spans the variant set. | Negative | P2 |
+| UI-PART-237 | Test Templates | Test Results tab aggregates results for all stock items | Two stock items of PART-TST each with a result. | Pass on item 1, fail on item 2. | 1. Record results against each stock item. 2. Open part **Test Results**. | Both results appear in one table. This tab shows results, not template configuration. | Positive | P2 |
+| UI-PART-238 | Test Templates | Enable Testable on an existing part | Non-testable unlocked part. | Toggle Testable on. | 1. Enable Testable. | Test Templates and Test Results tabs appear. | State-transition | P2 |
+| UI-PART-239 | Test Templates | Description is informational only | Template with a description. | Description=`Operator note`. | 1. Save description. 2. Record a result. | Description is shown to the user. Result recording does not require the description field. | Positive | P3 |
+| UI-PART-240 | Test Templates | Re-enable a disabled test | Template Enabled=false. | Set Enabled=true. | 1. Enable the template. 2. Record a new result against it. | Template is active again. New results can be recorded. Old results still exist if they were not deleted. | State-transition | P2 |

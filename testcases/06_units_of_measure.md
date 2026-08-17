@@ -1,0 +1,28 @@
+# Feature: Units of Measure
+
+**Docs:** [Units of Measure](https://docs.inventree.org/en/stable/part/#units-of-measure) · [Physical Units](https://docs.inventree.org/en/stable/concepts/units/) · [Supplier part units](https://docs.inventree.org/en/stable/part/#supplier-part-units)
+
+Blank part UoM means dimensionless pieces. Supplier-part units must be compatible with the base part unit. Pint is case-sensitive.
+
+| ID | Area | Scenario | Preconditions | Test Data | Steps | Expected Result | Type | Priority |
+|---|---|---|---|---|---|---|---|---|
+| UI-PART-141 | UoM | Default unit is blank / pcs | New part, Units left blank. | Name=`QA-Uom-Blank`. | 1. Create part with Units blank. 2. Show Part Details. | Units of measure are blank, tracked as dimensionless pieces. UI shows default pcs. | Positive | P1 |
+| UI-PART-142 | UoM | Assign physical unit metres | Unlocked part. | Units=`metre` (valid pint unit). | 1. Edit part. 2. Set Units to metres. 3. Save. | Part UoM is metres. Stock and BOM quantities are in that dimension. | Positive | P1 |
+| UI-PART-143 | UoM | Assign volume unit litres | Unlocked part. | Units=`litre`. | 1. Set Units to litres. 2. Save. | Part tracks quantities in litres. | Positive | P2 |
+| UI-PART-144 | UoM | Invalid / unknown unit rejected | Unlocked part. | Units=`furlongs-per-fortnight` or `not-a-unit`. | 1. Enter an invalid unit. 2. Save. | Save is blocked. Error is shown. Previous unit is unchanged. | Negative | P1 |
+| UI-PART-145 | UoM | Unit is case-sensitive (`kg` vs `KG`) | Unlocked part. | Units=`kg` then `KG`. | 1. Set `kg` — expect success. 2. Set `KG` — expect rejection. | `kg` is accepted. `KG` is not a valid pint unit and is rejected. | Boundary / Validation | P2 |
+| UI-PART-146 | UoM | Supplier part unit compatible with metres | PART-WIRE units=`metre`. Purchaseable. SUP-A exists. | Supplier unit=`cm` or `feet` or `inch`. | 1. Create/edit supplier part. 2. Set unit to `cm` (or `feet`). 3. Save. | Compatible unit is accepted. | Positive | P1 |
+| UI-PART-147 | UoM | Supplier part unit incompatible with metres | PART-WIRE units=`metre`. | Supplier unit=`kg` or `litre`. | 1. Set supplier part unit to `kg`. 2. Save. | Error is displayed. Incompatible unit is not saved. | Negative | P1 |
+| UI-PART-148 | UoM | Default supplier unit matches base part | PART-WIRE units=`metre`. | New supplier part, unit left default. | 1. Create supplier part without changing unit. | Default unit is the same as the base part (`metre`). | Positive | P2 |
+| UI-PART-149 | UoM | Change part unit after stock exists | PART-WIRE has stock in metres. | Change unit to `cm` (compatible) vs `kg` (incompatible). | 1. Attempt compatible change. 2. Attempt incompatible change. | **Needs clarification:** docs do not specify whether existing stock blocks a unit change. Compatible vs incompatible outcomes must be recorded from the UI. | State-transition | P2 |
+| UI-PART-150 | UoM | Engineering notation accepted in quantity/parameter contexts | Parameter or quantity field that uses pint. | Values `10k3`, `10M3`, `3n02`. | 1. Enter each value where units apply. | Values are accepted as 10300, 10000000, and 0.00000000302 respectively. | Boundary | P3 |
+| UI-PART-151 | UoM | Scientific notation is case-sensitive | Same as UI-PART-150. | `1E3` vs `1e3`. | 1. Enter `1E3`. 2. Enter `1e3`. | `1E3` is valid (1000). `1e3` is not valid scientific notation. | Boundary | P3 |
+| UI-PART-152 | UoM | Feet and inches shorthand | Length parameter or unit field. | `3'` and `6"`. Then `3'6"`. | 1. Enter `3'`. 2. Enter `6"`. 3. Enter `3'6"`. | `3'` = 3 feet, `6"` = 6 inches are valid. Compound `3'6"` is **not** supported and is rejected. | Boundary | P3 |
+| UI-PART-153 | UoM | Custom unit appears in unit selection | Staff user. Settings → Physical Units. | Name=`QA-spool`, definition as required. | 1. Open Physical Units. 2. Create custom unit. 3. Assign it on a new part. | Custom unit can be created and used as a part UoM. | Positive | P2 |
+| UI-PART-154 | UoM | Dimensionless custom unit uses definition `1` | Staff user. | Name=`QA-pack`, definition=`1`. | 1. Create custom unit with definition `1`. 2. Assign to a part. | Dimensionless custom unit is created and can be used. | Positive | P3 |
+| UI-PART-155 | UoM | Built-in dimensionless aliases (piece, each, dozen) | Unlocked part. | Units=`piece` / `each` / `dozen`. | 1. Set part unit to `piece`. 2. Repeat `each`, `dozen` if offered. | Built-in custom units are accepted. | Positive | P3 |
+| UI-PART-156 | UoM | BOM quantity uses part UoM | PART-WIRE metres. Assembly unlocked. | raw_amount=`25 cm`. | 1. Add wire to BOM as `25 cm`. | Quantity converts to 0.25 metres. | Cross-functional | P2 |
+| UI-PART-157 | UoM | Dimensionless part rejects unit in BOM raw_amount | PART-STD units blank. | raw_amount=`2 kg`. | 1. Add PART-STD to BOM with `2 kg`. | raw_amount may not include a unit when the part has no UoM. Error is shown. | Negative | P2 |
+| UI-PART-158 | UoM | Blank UoM BOM raw_amount is numeric only | PART-STD units blank. | raw_amount=`2`. | 1. Add BOM line with raw amount `2`. | Quantity is 2. Line saves. | Positive | P2 |
+| UI-PART-159 | UoM | SI prefix case (`k` vs `M`) | Resistance parameter, units ohm. | `1k` vs `1K` vs `1M`. | 1. Enter `1k`. 2. Enter `1K`. 3. Enter `1M`. | `k` (kilo) and `M` (mega) are distinct. Invalid case is rejected or mis-parsed; **Needs clarification** for exact `1K` handling. `1M` is 1e6 ohms if accepted. | Boundary | P3 |
+| UI-PART-160 | UoM | Persistence of unit after reload | Part with Units=`metre`. | PART-WIRE. | 1. Set unit. 2. Reload part. | Unit remains `metre`. | Persistence | P1 |

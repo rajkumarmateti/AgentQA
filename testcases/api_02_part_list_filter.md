@@ -1,0 +1,44 @@
+# API: Part list filtering, search, pagination
+
+**Endpoint:** `GET /api/part/`  
+**Success:** **200**. Paginated: `limit`, `offset`, `ordering`. List schema requires `count`, `results`.
+
+Use USER-OK. Seed enough parts so filters have true and false matches.
+
+| ID | Endpoint | Method | Scenario | Preconditions | Request/Data | Expected Status | Response Assertions | Business Assertions | Type | Priority |
+|---|---|---|---|---|---|---|---|---|---|---|
+| API-PART-036 | `/api/part/` | GET | Pagination `limit` | ≥3 parts. | `?limit=2` | 200 | `results.length` ≤ 2. `count` ≥ 3. `next` is URI if more pages. | Second page via `offset` or `next` returns different `pk`s (no overlap if pages full). | Positive | P1 |
+| API-PART-037 | `/api/part/` | GET | Pagination `offset` | Same seed. | `?limit=2&offset=2` | 200 | Results start after the first page. | Combined pages cover distinct parts. | Positive | P1 |
+| API-PART-038 | `/api/part/` | GET | `offset` = 0 equivalent to first page | ≥1 part. | `?limit=5&offset=0` vs `?limit=5` | 200 | Same `results` `pk` order (if `ordering` equal). | | Positive | P2 |
+| API-PART-039 | `/api/part/` | GET | `offset` beyond `count` | Known count N. | `?offset=`N+10 `&limit=10` | 200 | `results` empty. `count` still N. | | Boundary | P2 |
+| API-PART-040 | `/api/part/` | GET | `limit` = 0 or negative | USER-OK. | `?limit=0` then `?limit=-1` | **Needs verification** | Not an unhandled 500. | | Boundary | P2 |
+| API-PART-041 | `/api/part/` | GET | `limit` / `offset` wrong type | USER-OK. | `?limit=abc&offset=xyz` | **Needs verification** | | | Negative | P2 |
+| API-PART-042 | `/api/part/` | GET | `ordering` by `name` | Parts with distinct names. | `?ordering=name` and `?ordering=-name` | 200 | Results ordered by `name` ascending then descending. | Sort is stable enough to invert. | Positive | P2 |
+| API-PART-043 | `/api/part/` | GET | Invalid `ordering` field | USER-OK. | `?ordering=not_a_field` | **Needs verification** | | | Negative | P3 |
+| API-PART-044 | `/api/part/` | GET | Filter `active=true` / `false` | One active and one inactive part. | `?active=true` then `?active=false` | 200 | Each result `active` matches the filter. | Inactive part excluded from `true` list. | Positive | P1 |
+| API-PART-045 | `/api/part/` | GET | Filter `assembly`, `component`, `purchaseable`, `salable`, `trackable`, `virtual`, `consumable`, `testable`, `locked`, `is_template` | Seed parts for each flag true and false. | Parameterize `?{flag}=true` and `false`. | 200 | Every result’s flag equals the query boolean. | **Data-driven.** | Positive | P1 |
+| API-PART-046 | `/api/part/` | GET | Boolean filter invalid value | USER-OK. | `?active=maybe` | **Needs verification** | | | Negative | P2 |
+| API-PART-047 | `/api/part/` | GET | Filter `category` by PK | PART-A in CAT-A, another part in CAT-B. | `?category=`CAT-A.pk | 200 | Each result `category` is CAT-A.pk (direct assignment). | CAT-B part not included unless cascade (see 048). | Positive | P1 |
+| API-PART-048 | `/api/part/` | GET | `cascade` with `category` | Part in CAT-B (child of CAT-A). Part only in CAT-A. | `?category=`CAT-A.pk`&cascade=true` vs `cascade=false` | 200 | `cascade=true` includes child-category parts (schema: include items in child categories). | `cascade=false` (or omitted) **Needs verification** whether children are excluded. | Positive | P1 |
+| API-PART-049 | `/api/part/` | GET | `category=null` | A part with `category` null. | Query `category=null` (literal per schema). | 200 | Results have `category` null. | Uncategorized parts listed. | Positive | P2 |
+| API-PART-050 | `/api/part/` | GET | Unknown `category` PK | Unused category id. | `?category=99999999` | 200 or **Needs verification** | If 200: empty `results` or error — record actual. | No crash. | Negative | P2 |
+| API-PART-051 | `/api/part/` | GET | Exact `IPN` | PART-A IPN `API-IPN-001`. | `?IPN=API-IPN-001` | 200 | Every result `IPN` equals `API-IPN-001`. | Other IPNs excluded. | Positive | P1 |
+| API-PART-052 | `/api/part/` | GET | `IPN_regex` | Parts IPN `API-IPN-001` and `OTHER-1`. | `?IPN_regex=^API-IPN-` | 200 | Matching IPNs only. | Invalid regex **Needs verification** (separate case 053). | Positive | P2 |
+| API-PART-053 | `/api/part/` | GET | Invalid `IPN_regex` | USER-OK. | `?IPN_regex=[` | **Needs verification** | | | Negative | P3 |
+| API-PART-054 | `/api/part/` | GET | `has_ipn` | Part with IPN and part with empty IPN. | `?has_ipn=true` / `false` | 200 | `true`: IPN non-empty. `false`: empty IPN. | | Positive | P2 |
+| API-PART-055 | `/api/part/` | GET | `search` by name | PART-A name unique substring. | `?search=` unique name fragment | 200 | PART-A in `results`. | Searched fields include `name` (documented). | Positive | P1 |
+| API-PART-056 | `/api/part/` | GET | `search` by IPN, description, keywords | Seed those fields. | Separate searches for each documented field value. | 200 | Matching part returned. | Fields: IPN, description, keywords, name, revision, category__name, manufacturer MPN, supplier SKU, tags. SKU/MPN/tags **Needs verification** if no supplier/tag data. | Positive | P2 |
+| API-PART-057 | `/api/part/` | GET | `name_regex` | Distinct names. | `?name_regex=^QA-API-` | 200 | Names match regex. | | Positive | P2 |
+| API-PART-058 | `/api/part/` | GET | `is_revision` / `has_revisions` / `revision_of` | PART-B with `revision_of`=PART-A.pk. | `?is_revision=true`; `?has_revisions=true`; `?revision_of=`PART-A.pk | 200 | `is_revision=true` returns PART-B. `revision_of` returns revisions of PART-A. `has_revisions=true` includes PART-A if it has revisions. | | Positive | P2 |
+| API-PART-059 | `/api/part/` | GET | `is_variant` / `variant_of` | Variant with `variant_of`=template pk. | `?is_variant=true`; `?variant_of=`template.pk | 200 | Variant listed. Template not listed as variant. | | Positive | P2 |
+| API-PART-060 | `/api/part/` | GET | `has_stock` / `low_stock` / `high_stock` / `depleted_stock` / `unallocated_stock` | Parts with known stock vs min/max. | Each boolean query. | 200 | Results consistent with each flag’s meaning **as implemented**. Schema gives names only. | Exact low/high thresholds **Needs clarification** vs part min/max. | Positive | P3 |
+| API-PART-061 | `/api/part/` | GET | `has_units` / `has_pricing` | Part with `units` set vs null; part with/without pricing. | `?has_units=true`; `?has_pricing=true` | 200 | `has_units=true` → `units` non-empty. Pricing filter **Needs clarification** of what counts as pricing. | | Positive | P3 |
+| API-PART-062 | `/api/part/` | GET | `default_location` | PART-A `default_location`=LOC-A. | `?default_location=`LOC-A.pk | 200 | Results’ `default_location` equals LOC-A.pk. | | Positive | P2 |
+| API-PART-063 | `/api/part/` | GET | `exclude_id` | Known pks. | `exclude_id` comma-separated (schema: array / comma-separated). | 200 | Excluded pks absent. | **Needs verification** of query encoding (repeated vs CSV). | Positive | P2 |
+| API-PART-064 | `/api/part/` | GET | `related` / `exclude_related` | Related pair PART-A / PART-B. | `?related=`PART-A.pk; `?exclude_related=`PART-A.pk | 200 | `related` shows parts related to PART-A. `exclude_related` omits them. | | Positive | P2 |
+| API-PART-065 | `/api/part/` | GET | Combine filter + search + pagination | Mixed seed. | `?active=true&search=QA-API&limit=1` | 200 | All results `active` true and match search. `results.length` ≤ 1. | AND semantics for combined filters **Needs verification** if undocumented; typical DRF AND. | Positive | P2 |
+| API-PART-066 | `/api/part/` | GET | `created_after` / `created_before` | Part created today. | Date strings. Schema types are string; descriptions say “Updated after/before” while names say created — **Needs clarification**. | 200 or error | If 200, results fall in the date window. | Do not assume date format; try ISO `YYYY-MM-DD`. | Boundary | P3 |
+| API-PART-067 | `/api/part/` | GET | `category_detail=true` on list | ≥1 categorized part. | `?category_detail=true&limit=5` | 200 | `category_detail` present per schema (Category or null). | | Positive | P2 |
+| API-PART-068 | `/api/part/` | GET | `parameters=true` on list | Part with parameters. | `?parameters=true` | 200 | `parameters` array or null on results. | | Positive | P2 |
+| API-PART-069 | `/api/part/` | GET | `ancestor` / `exclude_tree` / `convert_from` / `in_bom_for` | Seed tree/BOM as available. | Each integer query with a valid PK. | 200 | Results restricted as those filters intend. Exact semantics beyond names **Needs clarification**. | | Positive | P3 |
+| API-PART-070 | `/api/part/` | GET | `starred` filter | Star a part as USER-OK if API allows (starred is read-only on Part body). | `?starred=true` | 200 | Results report `starred` true. | How to star via API is **Needs clarification** (field is read-only on Part serializer). | Positive | P3 |
