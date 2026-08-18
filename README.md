@@ -4,6 +4,8 @@ Test assets for the InvenTree **Parts** module: manual UI and API cases, plus Pl
 
 The product under test is InvenTree’s Parts domain (create/edit parts, categories, attributes, revisions, parameters, related parts, and the matching REST API). Behavior is taken from the stable InvenTree docs — not invented. Gaps are marked **Needs clarification** / **Needs verification** in the manual cases.
 
+Process and architecture: [`STRATEGY.md`](STRATEGY.md).
+
 **Sources of truth**
 
 - [Parts (UI)](https://docs.inventree.org/en/stable/part/)
